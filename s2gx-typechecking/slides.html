@@ -236,6 +236,22 @@ class GDKMethods {
 </section>
 
 <section class="slide">
+    <h2>STC basics (cont'd)</h2>
+    <h3>Multiple assignments</h3>
+    <div class="slide">
+        <textarea id="multiple_assignments" name="multiple_assignments" class="code" mode="groovy" style="display: none;">
+        def (x,y) = [ 1, 2 ] // valid only because the number of components correspond
+        </textarea>
+    </div>
+    <p></p>
+    <div class="slide">
+        <textarea id="multiple_assignments2" name="multiple_assignments" class="code" mode="groovy" style="display: none;">
+def (int x, Date d) = [1, new Date()] // did you know about that syntax?
+        </textarea>
+    </div>
+</section>
+
+<section class="slide">
     <h2>Type checking options</h2>
     <h3>if set on a class, type checks:</h3>
     <ul>
