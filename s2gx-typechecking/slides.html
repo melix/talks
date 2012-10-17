@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+	<meta name="viewport" content="width=1024, user-scalable=no">
+
+	<title>Groovy 2: Type checking to the rescue!</title>
+	
+	<!-- Required stylesheet -->
+	<link rel="stylesheet" href="core/deck.core.css">
+	
+	<!-- Extension CSS files go here. Remove or add as needed. -->
+	<link rel="stylesheet" href="extensions/goto/deck.goto.css">
+	<link rel="stylesheet" href="extensions/menu/deck.menu.css">
+	<link rel="stylesheet" href="extensions/navigation/deck.navigation.css">
+	<link rel="stylesheet" href="extensions/status/deck.status.css">
+	<link rel="stylesheet" href="extensions/hash/deck.hash.css">
+	<link rel="stylesheet" href="extensions/scale/deck.scale.css">
+
+	<!-- Style theme. More available in /themes/style/ or create your own. -->
+	<link rel="stylesheet" href="themes/style/s2gx.css">
+	
+	<!-- Transition theme. More available in /themes/transition/ or create your own. -->
+	<link rel="stylesheet" href="themes/transition/horizontal-slide.css">
+
+    <!-- CodeMirror stylesheet -->
+    <link rel="stylesheet" href="extensions/codemirror/deck.codemirror.css">
+
+    <link rel="stylesheet" href="extensions/codemirror/themes/default.css">
+
+	<!-- Required Modernizr file -->
+	<script src="modernizr.custom.js"></script>
+</head>
+<body class="deck-container">
+
+<!-- Begin slides. Just make elements with a class of slide. -->
+
+<section class="slide">
+    <div class="front-slide">
+        <div class="title">Groovy 2: Type checking to the rescue!</div>
+        <div class="subtitle">Cédric Champeau, VMware</div>
+        <div class="subtitle2">SpringOne2GX, October 17th, 2012</div>
+        <div class="subtitle2">@CedricChampeau</div>
+    </div>
+</section>
+
+<section class="slide">
+	<h2>About me</h2>
+    <h3>Past : Groovy contributor</h3>
+                <ul>
+                    <li>Bugfixes
+                    <li>Modules: @Bytecode AST xform, GFreeMarker</li>
+                    <li>Core: compilation customizers, @xInterrupt, ...</li>
+                    <li>Used Groovy as a DSL for natural language processing</li>
+                </ul>
+    <h3>Present: Core Groovy committer</h3>
+            <ul>
+                <li>Working on bugfixes but main focus on Groovy 2.0</li>
+                <li>Static type checking</li>
+                <li>Static compilation</li>
+            </ul>
+    <h3>Follow me</h3>
+        <ul>
+            <li>Twitter: <a href="http://twitter.com/CedricChampeau" target="_blank">@CedricChampeau</a></li>
+            <li>Google+: <a href="http://gplus.to/cchampeau" target="_blank">http://gplus.to/cchampeau</a></li>
+            <li>Blog: <a href="http://jroller.com/melix" target="_blank">http://jroller.com/melix</a></li>
+        </ul>
+</section>
+
+<section class="slide">
+    <h2>About Groovy 2</h2>
+    <h3>Modularity</h3>
+    <ul>
+        <li>several jars for modules (swing, ant, xml, json, ...)</li>
+        <li>groovy.jar now 3MB</li>
+        <li>extension modules</li>
+    </ul>
+    <h3>JDK 7 enhancements</h3>
+    <ul>
+        <li>project coin</li>
+        <li>invoke dynamic support (use -indy jars)</li>
+    </ul>
+    <h3>Static theme</h3>
+    <ul>
+        <li>Static type checking</li>
+        <li>Static compilation</li>
+    </ul>
+</section>
+
+<section class="slide">
+    <h2>Static type checking</h2>
+    <h3>Goal</h3>
+    <ul>
+        <li>Find errors at compile time (fail early)</li>
+        <li>because lots of code do not use dynamic features of Groovy</li>
+        <li>so many bugs can be discovered before production</li>
+        <li>Make java developers even happier</li>
+    </ul>
+    <h3>Turn the compiler grumpy</h3>
+    <ul>
+        <li>Report typos</li>
+        <li>missing method/property</li>
+        <li>Extension methods (aka DefaultGroovyMethods)</li>
+        <li>Type check assignments</li>
+        <li>Perform type inference</li>
+        <li>method/closure return type inference</li>
+        <li>generics type inference</li>
+   </ul>
+</section>
+
+<section class="slide">
+	<h2>Static Type Checking</h2>
+    <p>It's <b>optional</b></p>
+    <p>Triggered using <i>@TypeChecked</i> annotation</p>
+    <p>Annotate a class or a method</p>
+    <div>
+      <textarea id="ex1" name="ex1" class="code" mode="groovy" style="display: none;">
+@groovy.transform.TypeChecked
+class TypoInMethodName {
+    void foo() {}
+    void bar() {}
+
+    void method() {
+        foo() // no error, method is defined
+        baz() // error at compile time!
+    }
+}
+      </textarea>
+    </div>
+</section>
+
+<section class="slide">
+    <h2>Static type checking basics</h2>
+    <div class="slide">
+        <textarea id="ex2" name="ex2" class="code" mode="groovy" style="display: none;">
+@groovy.transform.TypeChecked
+class TypoInFieldName {
+    String name = 'Cedric'
+
+    void method() {
+        println naame // typo, the variable [naame] is undeclared
+    }
+}</textarea>
+    </div>
+    <div class="slide">
+        <textarea id="ex3" name="ex3" class="code" mode="groovy" style="display: none;">
+@groovy.transform.TypeChecked
+class TypoInGString {
+    String name = 'Cedric'
+
+    void method() {
+        println "My name is $naame" // in gstrings too, the variable [naame] is undeclared
+    }
+}</textarea>
+    </div>
+    <div class="slide">
+    <textarea id="ex4" name="ex4" class="code" mode="groovy" style="display: none;">
+@groovy.transform.TypeChecked
+class OperatorChecking {
+    void method() {
+        int x = 0
+        x += new Object() // Cannot find matching method int#plus(Object)
+    }
+}</textarea>
+    </div>
+</section>
+
+<section class="slide">
+    <h2>STC basics (cont'd)</h2>
+    <div class="slide">
+        <textarea id="ex6" name="ex6" class="code" mode="groovy" style="display: none;">
+@groovy.transform.TypeChecked
+class AssignmentError {
+    void method() {
+        Set set = 'Bar' // Cannot assign a value of type String to variable of type Set
+    }
+}</textarea>
+    </div>
+    <div class="slide">
+        <textarea id="ex5" name="ex5" class="code" mode="groovy" style="display: none;">
+@groovy.transform.TypeChecked
+class AssignmentToArrayElement {
+    void method() {
+        Date[] arr = new Date[2]
+        arr[0] = new Date() // ok
+        arr[1] = 'Hello' // Cannot assign value of type String to variable of type Date
+    }
+}</textarea>
+    </div>
+    <div class="slide">
+    <textarea id="ex7" name="ex7" class="code" mode="groovy" style="display: none;">
+@groovy.transform.TypeChecked
+class IncorrectReturnType {
+    int method() {
+        'foo' // cannot return value of type String on method returning type int
+    }
+}</textarea>
+    </div>
+</section>
+
+<section class="slide">
+    <h2>STC basics (cont'd)</h2>
+    <div class="slide">
+        <textarea id="ex9" name="ex9" class="code" mode="groovy" style="display: none;">
+@groovy.transform.TypeChecked
+class ReturnTypePropagation {
+    boolean test() { true }
+    void m() {
+        int x = 1 + test() // return type checking
+    }
+}</textarea>
+    </div>
+    <p></p>
+    <div class="slide">
+        <textarea id="ex10" name="ex10" class="code" mode="groovy" style="display: none;">
+@groovy.transform.TypeChecked
+class TransparentToString {
+    String test() { new StringBuilder('transparent conversion to string') }
+    void m() {
+        println "${test()}"
+    }
+}
+</textarea>
+    </div>
+    <p></p>
+    <div class="slide">
+    <textarea id="ex11" name="ex11" class="code" mode="groovy" style="display: none;">
+@groovy.transform.TypeChecked
+class GDKMethods {
+    int test(String val) {
+        val.toInteger() // DGM methods
+    }
+}</textarea>
+    </div>
+</section>
+
+<section class="slide">
+    <h2>Type checking options</h2>
+    <h3>if set on a class, type checks:</h3>
+    <ul>
+        <li>the whole class</li>
+        <li>inner classes</li>
+        <li>closures defined in the class</li>
+    </ul>
+    <h3>if set on a method, type checks:</h3>
+    <ul>
+        <li>the method only</li>
+        <li>closures defined in the method body</li>
+    </ul>
+    <div class="slide">
+        You can prevent some code from beeing type checked:
+        <textarea id="skip" name="skip" class="code" mode="groovy" style="display: none;">
+import groovy.transform.TypeChecked
+import static groovy.transform.TypeCheckingMode.*
+
+@TypeChecked(SKIP)
+int foo() { 'STRING SHOULD NOT PASS TYPE CHECKING' }
+</textarea>
+    </div>
+</section>
+
+<section class="slide">
+    <h2>Type inference (1/3)</h2>
+    <h3>def with list literals</h3>
+    <textarea id="ex13" name="ex13" class="code" mode="groovy" style="display: none;">
+@groovy.transform.TypeChecked
+    class ListComponentTypeInference {
+        void test() {
+            def list = ['a','b','c']
+            println list[0].toUpperCase() // list type inferrence
+        }
+    }</textarea>
+</section>
+<section class="slide">
+    <h2>Type inference (2/3)</h2>
+    <h3>Verify that declared types are compatible with assignments</h3>
+    <textarea id="ex14" name="ex14" class="code" mode="groovy" style="display: none;">
+@groovy.transform.TypeChecked
+    class GenericsTypeInference {
+        void test() {
+            List&lt;String&gt; list = ['a','b','c'] // generic type argument inferrence
+            println list[0].toUpperCase()
+            List&lt;Number&gt; list2 = ['a','b','c'] // Cannot assign List&lt;String&gt; to List&lt;Number&gt;
+        }
+    }</textarea>
+</section>
+<section class="slide">
+    <h2>Type inference (3/3)</h2>
+    <h3>LUB = Lowest Upper Bound (also called Least Upper Bound)</h3>
+    <ul>
+        <li>represents the "common super type"</li>
+        <li>granularity is the class + interfaces</li>
+    </ul>
+    <textarea id="ex15" name="ex15" class="code" mode="groovy" style="display: none;">
+@groovy.transform.TypeChecked
+    class LowestUpperBound {
+        void test() {
+            List&lt;? extends Comparable&gt; list = ['a',123] // LUB inferrence
+        }
+    }</textarea>
+</section>
+
+<section class="slide">
+    <h2>Instanceof type inference</h2>
+    <textarea id="instanceof" name="instanceof" class="code" mode="groovy" style="display: none;">
+@groovy.transform.TypeChecked
+class InstanceOfNotRequired {
+    void test(Object val) {
+        if (val instanceof String) {
+            println val.toUpperCase() // no need for explicit cast
+        } else if (val instanceof Number) {
+            println ("X"*val.intValue()) // String#multiply(int) from DGM
+        }
+    }
+}</textarea>
+</section>
+
+<section class="slide">
+    <h2>Type checked Grooviness (1/4)</h2>
+    <h3>Groovy constructors</h3>
+    <textarea id="dimconstr" name="dimconstr" class="code" mode="groovy" style="display: none;">
+Dimension d = [100,200] // type checked!
+Dimension d2 = [100] // fails at compile time!</textarea>
+    <h3>Map-style constructors</h3>
+    <textarea id="mapconstr" name="mapconstr" class="code" mode="groovy" style="display: none;">
+class Bean {
+    int x
+    int y
+}
+Bean myBean = [x:100,y:200] // valid
+Bean myBean = [x:'foo', y:200] // compile-time error
+</textarea>
+</section>
+<section class="slide">
+    <h2>Type checked Grooviness (2/4)</h2>
+    <h3>Closure return type inference</h3>
+    <textarea id="closure_return" name="closure_return" class="code" mode="groovy" style="display: none;">
+def cl = { new Date() }
+long time = cl().time // no compile time error!
+boolean ok = cl().time // compile time error!
+    </textarea>
+    <h3>Closure arguments</h3>
+    <textarea id="closure_args" name="closure_args" class="code" mode="groovy" style="display: none;">
+def sum = { int x, int y -> x+y }
+assert sum(8,8) == 16 // no compile time error, types are compatible
+assert sum('8','8') == '88' // compile time error!
+    </textarea>
+</section>
+<section class="slide">
+    <h2>Type checked Grooviness (3/4)</h2>
+    <h3>Implicit toString at return</h3>
+    <textarea id="implicit_toString" name="implicit_toString" class="code" mode="groovy" style="display: none;">
+String method(String name) {
+   StringBuilder sb = new StringBuilder()
+   sb 'Hi ' << name << '!' // implicit return of a String
+}</textarea>
+    <ul>
+        <li>works for assignments too</li>
+        <li>only for String, boolean and Class</li>
+    </ul>
+    <div class="slide">
+        <textarea id="assignments" name="assignments" class="code" mode="groovy" style="display: none;">
+String foo = new Date() // valid, implicit call to toString()
+boolean truth = 'anything' // groovy truth
+Class clazz = 'java.lang.String' // did you know about that?
+        </textarea>
+        <h3>But this is not valid</h3>
+        <textarea id="error_return" name="error_return" class="code" mode="groovy" style="display: none;">
+int method() {
+   'String' // return type is not compatible, no implicit conversion
+}</textarea>
+    </div>
+</section>
+
+<section class="slide">
+    <h2>Type checked Grooviness (4/4)</h2>
+    <h3>Compatible with @AST transformations</h3>
+    <textarea id="ast_stc" name="ast_stc" class="code" mode="groovy" style="display: none;">
+@groovy.transform.TupleConstructor
+class Person {
+    String name, city
+    static Person create() {
+        new Person("Guillaume")
+    }
+}
+
+Person.create()</textarea>
+    <p></p>
+    <p>True as long as the AST transformation runs before the INSTRUCTION_SELECTION phase</p>
+</section>
+
+<section class="slide">
+    <h2>Flow typing</h2>
+    <ul>
+        <li>Use type inference to remove the need for explicit casts</li>
+        <li>If using totally different types with same variable, bad practice</li>
+    </ul>
+    <div class="slide">
+    <textarea id="flowt1" name="flowt1" class="code" mode="groovy" style="display: none;">
+def var = 123 // store an int into var
+int x = var // assignment is valid, compiler doesn't complain
+var = '123' // assign a String to var
+x = var.toInteger() // valid, no compile-time error because we know it's a String
+var = 123 // still valid
+x = var.toUpperCase() // at this point, compile-time error
+    </textarea></div>
+</section>
+
+<section class="slide">
+    <h2>What's cooking?</h2>
+    <h3>Planned for Groovy 2.1</h3>
+    <ul>
+        <li>Support for @DelegatesTo</li>
+        <li>Improved DSL type checking</li>
+    </ul>
+    <h3>Wishlist</h3>
+    <ul>
+        <li>ability to enable @TypeChecked by default</li>
+        <li>probably through CompilerConfiguration</li>
+    </ul>
+</section>
+
+
+<!--
+
+  --------------        SECTION GOTCHAS --------------
+
+-->
+<section class="slide">
+    <div class="transition">
+        <h1>Static type checking gotchas</h1>
+    </div>
+</section>
+
+
+<section class="slide">
+    <h2>Dynamic vs Static</h2>
+    <h3>Static type checking in a dynamic language?!</h3>
+    <ul>
+        <li>by definition, dynamic features are not compatible</li>
+        <li>metaclass, categories, builders, mocks...</li>
+    </ul>
+    <textarea id="dynamic_error" name="dynamic_error" class="code" mode="groovy" style="display: none;">
+@groovy.transform.TypeChecked
+void wontPassTypeChecker() {
+        String.metaClass.myMethod = { 'a new method' }
+        'foo'.myMethod() // works with dynamic Groovy but not with STC
+}
+    </textarea>
+    <div class="slide">
+        <ul>
+            <li>Metaclasses can be changed from any thread</li>
+            <li>even if you change the metaclass in a not statically checked method</li>
+            <li>the changes won't be "visible" to a static type checker</li>
+        </ul>
+    </div>
+</section>
+
+<section class="slide">
+    <h2>Closure parameter types</h2>
+    <div class="slide">
+        <h3>What's wrong with this code?</h3>
+        <textarea id="wrong_each" name="wrong_each" class="code" mode="groovy" style="display: none;">
+    @groovy.transform.TypeChecked
+    List&lt;String&gt; wontCompile() {
+       ['foo','bar','baz'].collect { it.toUpperCase() }
+    }</textarea>
+    </div>
+    <div class="slide">
+        Is the role of the receiver the same in this code?
+        <textarea id="times_sample" name="times_sample" class="code" mode="groovy" style="display: none;">
+100.times { println it }</textarea>
+    </div>
+    <div class="slide">
+        <h3>The type checker doesn't know about the type of "it"</h3>
+        <a href="http://groovy.329449.n5.nabble.com/Closure-parameter-types-inference-td4978037.html">An enhancement proposal exists, nothing implemented yet</a>
+    </div>
+</section>
+
+<section class="slide">
+    <h2>Closure shared variables (1/2)</h2>
+    <ul>
+        <li>Tracking assignments of closure shared variables</li>
+        <li>The type checker enforces "good practice"</li>
+        <li>ensure that method calls are only possible on the LUB of all assignments</li>
+    </ul>
+    <div>
+        <textarea id="closure-shared-var" name="closure-shared-var" class="code" mode="groovy" style="display: none;">
+@groovy.transform.TypeChecked
+class ClosureSharedVariable {
+    void test() {
+        def var = "String" // var is a closure shared variable
+        def cl = { var = new Date() } // assignment of a Date inside a closure
+        cl()
+        var = var.toUpperCase() // method calls only allowed on the LUB
+    }
+}        </textarea>
+    </div>
+</section>
+<section class="slide">
+    <h2>Closure shared variables (2/2)</h2>
+    <h3>This is allowed</h3>
+    <div>
+        <textarea id="closure-shared-var2" name="closure-shared-var2" class="code" mode="groovy" style="display: none;">
+class A { void foo() {} }
+class B extends A { void bar() {} }
+
+@groovy.transform.TypeChecked
+class ClosureSharedVariable {
+    void test() {
+        def var = new A()
+        def cl = { var = new B() }
+        cl()
+        var.foo() // var is at least an instance of A
+    }
+}</textarea>
+    </div>
+</section>
+<section class="slide">
+    <h2>Closure delegates and strategy</h2>
+    <h3>In 2.0</h3>
+    <ul>
+        <li>Only "with" is supported</li>
+        <li>No support for delegate</li>
+        <li>No support for strategy</li>
+    </ul>
+    <h3>In 2.1 (upcoming)</h3>
+    <ul>
+        <li>User may "help" the type checker</li>
+        <li>Uses the <a href="https://github.com/melix/groovy-core/tree/delegatesto" target="_blank">@DelegatesTo</a> annotation</li>
+    </ul>
+</section>
+
+<section class="slide">
+    <h2>Method selection gotchas (1/3)</h2>
+    <h3>Dynamic vs static</h3>
+    <ul>
+        <li>In dynamic Groovy, methods are selected <b>at runtime</b></li>
+        <li>In dynamic Groovy+STC, it's still the case, yet the compiler tries to find them at compile time</li>
+        <li>By definition, the type checker is wrong!</li>
+    </ul>
+    <h3>What's wrong with this (statically checked) code?</h3>
+    <div>
+        <textarea id="valid_if_no_stc" name="valid_if_no_stc" class="code" mode="groovy" style="display: none;">
+static String foo(String s) {
+        'String'
+}
+static String foo(Integer s) {
+    'Integer'
+}
+static String foo(Boolean s) {
+    'Boolean'
+}
+['foo',123,true].each {
+    foo(it)
+}</textarea>
+    </div>
+</section>
+<section class="slide">
+    <h2>Method selection gotchas (2/3)</h2>
+    <h3>Step 1: you need to help the compiler</h3>
+    <div>
+        <textarea id="valid_if_no_stc2" name="valid_if_no_stc" class="code" mode="groovy" style="display: none;">
+static String foo(String s) {
+    'String'
+}
+static String foo(Integer s) {
+    'Integer'
+}
+static String foo(Boolean s) {
+    'Boolean'
+}
+['foo',123,true].each {
+    if (it instanceof String) {
+        foo((String)it)
+    } else if (it instanceof Boolean) {
+        foo((Boolean)it)
+    } else if (it instanceof Integer) {
+        foo((Integer)it)
+    }
+}</textarea>
+    </div>
+</section>
+<section class="slide">
+    <h2>Method selection gotchas (3/3)</h2>
+    <h3>Step 2: you can remove the casts!</h3>
+    <div>
+        <textarea id="valid_if_no_stc3" name="valid_if_no_stc" class="code" mode="groovy" style="display: none;">
+static String foo(String s) {
+    'String'
+}
+static String foo(Integer s) {
+    'Integer'
+}
+static String foo(Boolean s) {
+    'Boolean'
+}
+['foo',123,true].each {
+    if (it instanceof String) {
+        foo(it)
+    } else if (it instanceof Boolean) {
+        foo(it)
+    } else if (it instanceof Integer) {
+        foo(it)
+    }
+}</textarea>
+    </div>
+</section>
+
+<!--
+
+        SECTION STATIC COMPILATION
+
+-->
+<section class="slide">
+    <div class="transition">
+        <h1>Static compilation</h1>
+    </div>
+</section>
+
+<section class="slide">
+    <h2>Why do you want static compilation?</h2>
+    <div>
+        Results from a survey before we started working on static compilation
+        <img src="images/survey.png">
+        </div>
+</section>
+<section class="slide">
+    <h2>Why static compilation?</h2>
+    <div class="slide">
+    <h3>If you do static type checking...</h3>
+    <ul>
+        <li>you cannot ensure dynamic semantics</li>
+        <li>so why can't you statically compile ?</li>
+    </ul>
+    </div>
+    <div class="slide">
+    <h3>Benefits</h3>
+    <ul>
+        <li>Static type checking (type safety)</li>
+        <li>Improved performance</li>
+        <li>not everyone has JDK7+ (InvokeDynamic)</li>
+        <li>Bytecode size (work on progress)</li>
+        <li>Immunity to monkey patching (useful for framework developers)</li>
+    </ul>
+    </div>
+    <div class="slide">
+    <h3>But you loose...</h3>
+    <ul>
+        <li>Dynamic features (categories, metaclasses, ...)</li>
+        <li>Dynamic method dispatch</li>
+        <li>Dynamic Groovy semantics (part of)</li>
+    </ul>
+    </div>
+</section>
+<section class="slide">
+    <h2>Static compilation in Groovy 2</h2>
+    <h3>Static compilation is optional</h3>
+    <ul>
+        <li>Relies on the @TypeChecked AST transformation</li>
+        <li>Built to be as close as possible as dynamic Groovy semantics</li>
+    </ul>
+    <h3>But there are important differences</h3>
+    <ul>
+        <li>Unlike Groovy++, it's just static compilation</li>
+        <li>no added features</li>
+        <li>no grammar changes</li>
+        <li>Features and design choices discussed with the community</li>
+    </ul>
+</section>
+<section class="slide">
+    <h2>Static compilation: how to use</h2>
+    <div>
+        Just use the @CompileStatic annotation instead of @TypeChecked
+        <p></p>
+        <textarea id="fibsc" name="fibsc" class="code" mode="groovy" style="display: none;">
+@groovy.transform.CompileStatic
+int fib(int n) {
+    n<2?1:fib(n-1)+fib(n-2)
+}</textarea>
+        <p></p>
+        Generated bytecode is very close (if not equal) to what Java produces
+    </div>
+</section>
+<section class="slide">
+    <h2>CompileStatic and semantics</h2>
+    <div>
+        <h3>Does it follow the semantics of dynamic Groovy?</h3>
+        <p>Short answer: no</p>
+        <p>Long answer: as close as possible</p>
+    </div>
+    <h3 class="slide">Problem is the dynamic dispatch</h3>
+</section>
+<section class="slide">
+    <h2>Static method dispatch (1/2)</h2>
+    <div>
+    <h3>What does the following code outputs?</h3>
+    <textarea id="static_dispatch" name="static_dispatch" class="code" mode="groovy" style="display: none;">
+def foo(String str) { 'STRING' }
+def foo(Date d) { 'DATE' }
+Object o = new Date()
+foo(o) // in Java, would fail at compile-time
+    </textarea>
+    </div>
+    <div class="slide">
+        <ul>
+            <li>In dynamic Groovy, prints 'DATE'</li>
+            <li>Passes type checking thanks to flow typing</li>
+            <li>Prints 'DATE' with static compilation too!</li>
+        </ul>
+    </div>
+</section>
+<section class="slide">
+    <h2>Static method dispatch (2/2)</h2>
+    <div>
+        <h3>Be careful!</h3>
+        <textarea id="static_dispatch_gotcha" name="static_dispatch_gotcha" class="code" mode="groovy" style="display: none;">
+@CompileStatic
+class StaticDispatch {
+    static def foo(Object a) { 'OBJECT' }
+    static def foo(String a) { 'STRING' }
+    static def foo(Date a) { 'DATE' }
+
+    static def bar(Object o) {
+        foo(o)
+    }
+
+    static void main(String... args) {
+        println foo('string') // prints 'STRING'
+        println bar('string') // prints 'OBJECT'
+    }
+}</textarea>
+    </div>
+</section>
+
+<section class="slide">
+    <h2>Compat with extension modules (1/2)</h2>
+    <div>
+        <h3>Static compilation (thus static type checking) is compatible!</h3>
+        Define an extension
+        <textarea id="extension_mod" name="extension_mod" class="code" mode="groovy" style="display: none;">
+public class MyStringExtension {
+    public static String reverseToUpperCase(String self) {
+        StringBuilder sb = new StringBuilder(self.toUpperCase());
+        return sb.reverse().toString();
+    }
+}</textarea>
+        Write the descriptor file
+        <textarea id="extension_mod_descriptor" name="extension_mod_descriptor" class="code" mode="text" style="display: none;">
+moduleName=My test module
+moduleVersion=1.0-test
+extensionClasses=org.example.MyStringExtension
+staticExtensionClasses=
+</textarea>
+    </div>
+</section>
+<section class="slide">
+    <h2>Compat with extension modules (2/2)</h2>
+    <div>
+        <h3>Static compilation (thus static type checking) is compatible!</h3>
+        Use it in your statically compiled code!
+        <textarea id="extension_mod_usage" name="extension_mod" class="code" mode="groovy" style="display: none;">
+@groovy.transform.CompileStatic
+void codeUsingExtensionModule() {
+    def str = 'yvoorg'
+    assert str.reverseUpperCase() == 'GROOVY'
+}
+</textarea>
+    </div>
+</section>
+<!--
+
+        SECTION INSIDE
+
+-->
+<section class="slide">
+    <div class="transition">
+        <h1>Inside the type checker</h1>
+    </div>
+</section>
+
+<section class="slide">
+    <h2>Inside the type checker (1/2)</h2>
+    <h3>How does it work?</h3>
+    <ul>
+        <li>It's an AST transformation!</li>
+        <li>Technically, it doesn't really transform anything but it makes intensive use of node metadata (see ASTNode#getNodeMetaData)</li>
+        <li>runs at instruction selection phase (late)</li>
+        <li>Some compiler framework changes were needed to support
+            <ul>
+                <li>regular compilation</li>
+                <li>invokedynamic (1.7+ JVMs)</li>
+                <li>static compilation</li>
+            </ul>
+        </li>
+    </ul>
+</section>
+<section class="slide">
+    <h2>Inside the type checker (2/2)</h2>
+    <div class="slide">
+    <h3>Node metadata</h3>
+    <ul>
+        <li>Groovy allows storing arbitrary metadata on each AST node</li>
+        <li>The type checker uses this facility to store type information</li>
+        <li>For details, see <i>org.codehaus.groovy.transform.stc.StaticTypesMarker</i></li>
+    </ul>
+    </div>
+    <div class="slide">
+    <h3>Static compilation</h3>
+        <ul>
+            <li>Puts additional node metadata (see org.codehaus.groovy.transform.sc.StaticCompilationMetadataKeys)</li>
+            <li>Performs AST transformations (sometimes generates optimized bytecode directly)</li>
+        </ul>
+    </div>
+</section>
+<section class="slide">
+    <h2>Testing the type checker (1/2)</h2>
+    <h3>ASTTest transformation</h3>
+    <ul>
+        <li>Developped to help testing the type checker</li>
+        <li>An AST transform aimed at testing any AST transformation</li>
+    </ul>
+    <div>
+        <textarea id="asttest" name="asttest" class="code" mode="groovy" style="display: none;">
+Map.Entry&lt;Date, Integer&gt; entry
+
+@ASTTest(phase=INSTRUCTION_SELECTION, value={
+    assert node.getNodeMetaData(INFERRED_TYPE) == make(Date)
+})
+def k = entry?.key
+
+@ASTTest(phase=INSTRUCTION_SELECTION, value={
+    assert node.getNodeMetaData(INFERRED_TYPE) == Integer_TYPE
+})
+def v = entry?.value</textarea>
+    </div>
+</section>
+<section class="slide">
+    <h2>Testing the type checker (2/2)</h2>
+    <h3>ASTTest transformation</h3>
+    <div>
+        <textarea id="asttest2" name="asttest" class="code" mode="groovy" style="display: none;">
+@ASTTest(phase=INSTRUCTION_SELECTION, value= {
+    lookup('forLoop').each {
+        assert it instanceof org.codehaus.groovy.ast.stmt.ForStatement
+        def collection = it.collectionExpression // MethodCallExpression
+        def inft = collection.getNodeMetaData(INFERRED_TYPE)
+        assert inft == make(Set)
+        def entryInft = inft.genericsTypes[0].type
+        assert entryInft == make(Map.Entry)
+        assert entryInft.genericsTypes[0].type == STRING_TYPE
+        assert entryInft.genericsTypes[1].type == Integer_TYPE
+    }
+})
+void test() {
+    def result = ""
+    def sum = 0
+    forLoop:
+    for ( Map.Entry&lt;String, Integer&gt; it in [a:1, b:3].entrySet() ) {
+       result += it.getKey()
+       sum += it.getValue()
+    }
+    assert result == "ab"
+    assert sum == 4
+}</textarea>
+    </div>
+</section>
+
+<!--
+
+        SECTION Questions
+
+-->
+<section class="slide">
+    <div class="transition">
+        <h1>Q&A</h1>
+    </div>
+</section>
+<section class="slide">
+            <h2>Thank you!</h2>
+            <p></p>
+            <p></p>
+            <p></p>
+            <h5>Slides written using <a href="http://imakewebthings.com/deck.js/" target="_blank">deck.js</a></h5>
+            <p></p>
+            <p></p>
+            <p></p>
+            <h5>http://melix.github.com</h5>
+</section>
+
+
+<!-- End slides. -->
+
+
+<!-- Begin extension snippets. Add or remove as needed. -->
+
+<!-- deck.navigation snippet -->
+<a href="#" class="deck-prev-link" title="Previous">&#8592;</a>
+<a href="#" class="deck-next-link" title="Next">&#8594;</a>
+
+<!-- deck.status snippet -->
+<p class="deck-status">
+	<span class="deck-status-current"></span>
+	/
+	<span class="deck-status-total"></span>
+</p>
+
+<!-- deck.goto snippet -->
+<form action="." method="get" class="goto-form">
+	<label for="goto-slide">Go to slide:</label>
+	<input type="text" name="slidenum" id="goto-slide" list="goto-datalist">
+	<datalist id="goto-datalist"></datalist>
+	<input type="submit" value="Go">
+</form>
+
+<!-- deck.hash snippet -->
+<a href="." title="Permalink to this slide" class="deck-permalink">#</a>
+
+<!-- End extension snippets. -->
+
+
+<!-- Required JS files. -->
+<script src="jquery-1.7.2.min.js"></script>
+<script src="core/deck.core.js"></script>
+<script src="extensions/codemirror/codemirror.js"></script>
+
+<!-- Extension JS files. Add or remove as needed. -->
+<script src="core/deck.core.js"></script>
+<script src="extensions/goto/deck.goto.js"></script>
+<script src="extensions/hash/deck.hash.js"></script>
+<script src="extensions/status/deck.status.js"></script>
+<script src="extensions/navigation/deck.navigation.js"></script>
+<script src="extensions/scale/deck.scale.js"></script>
+<script src="extensions/codemirror/deck.codemirror.js"></script>
+<script src="extensions/codemirror/mode/javascript/javascript.js"></script>
+<script src="extensions/codemirror/mode/groovy/groovy.js"></script>
+
+<!-- Initialize the deck. You can put this in an external file if desired. -->
+<script>
+	$(function() {
+		$.deck('.slide', {
+            baseHeight: 680
+        });
+	});
+</script>
+</body>
+</html>

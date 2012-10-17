@@ -1,0 +1,4 @@
+DelegatesTo != foo.collect { ... }
+groovy truth
+impact of using @CS vs other modules
+when do I know I must use @CS?
