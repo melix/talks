@@ -349,27 +349,20 @@ assert sum('8','8') == '88' // compile time error!
 </section>
 <section class="slide">
     <h2>Type checked Grooviness (3/4)</h2>
-    <h3>Implicit toString at return</h3>
-    <textarea id="implicit_toString" name="implicit_toString" class="code" mode="groovy" style="display: none;">
-String method(String name) {
-   StringBuilder sb = new StringBuilder()
-   sb 'Hi ' << name << '!' // implicit return of a String
-}</textarea>
-    <ul>
-        <li>works for assignments too</li>
-        <li>only for String, boolean and Class</li>
-    </ul>
     <div class="slide">
-        <textarea id="assignments" name="assignments" class="code" mode="groovy" style="display: none;">
-String foo = new Date() // valid, implicit call to toString()
-boolean truth = 'anything' // groovy truth
-Class clazz = 'java.lang.String' // did you know about that?
-        </textarea>
-        <h3>But this is not valid</h3>
-        <textarea id="error_return" name="error_return" class="code" mode="groovy" style="display: none;">
-int method() {
-   'String' // return type is not compatible, no implicit conversion
-}</textarea>
+    <h3>Lists</h3>
+    <textarea id="list_maps" name="list_maps" class="code" mode="groovy" style="display: none;">
+def list = [new Date(), new Date()]
+def listOfTime = list.time
+long time = listOfTime[0]
+    </textarea>
+    </div>
+    <div class="slide">
+    <h3>Maps</h3>
+    <textarea id="maps_stc" name="maps_stc" class="code" mode="groovy" style="display: none;">
+def map = [Java: 'verbose', Groovy: 'Baby!']
+println "Groovy ${map.Groovy}"
+    </textarea>
     </div>
 </section>
 
