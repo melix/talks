@@ -9,6 +9,7 @@ import org.codehaus.groovy.ast.expr.ConstantExpression
  * Step 4: The "handle=true" flag
  * Step 5: What we do for ref can be done for dynamic variables too
  * Step 6: Refactor code for referenced beans type checking
+ * Step 7: Handle the anonymous bean syntax
  *
  * @author Cedric Champeau
  */
@@ -94,6 +95,26 @@ methodNotFound { receiver, name, argumentList, argTypes, call ->
         return newMethod("refTo$name") {
             def beanName = getArguments(call)[0].text
             checkReferencedBean(beanName, call)
+        }
+    }
+}
+
+// handle the property = { Person p -> ... } anonymous bean definition syntax
+incompatibleAssignment { lhsType, rhsType, expr ->
+    if (isBinaryExpression(expr) && rhsType == CLOSURE_TYPE && isClosureExpression(expr.rightExpression)) {
+        // foo = { ... -> }
+        def params = expr.rightExpression.parameters
+        if (params && params.length==1) { // foo = { BeanType -> ... }
+            if (!isAssignableTo(params[0].originType, lhsType)) {
+                withTypeChecker {
+                    addAssignmentError(
+                        lhsType,
+                        params[0].originType,
+                        expr
+                    )
+                }
+            }
+            handled = true
         }
     }
 }
