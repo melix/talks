@@ -7,7 +7,8 @@ import org.codehaus.groovy.ast.expr.ConstantExpression
  * Step 2: Handle the "ref" method of bean builder
  * Step 3: Check that the assignment is valid if we find the referenced bean
  * Step 4: The "handle=true" flag
- *
+ * Step 5: What we do for ref can be done for dynamic variables too
+ * 
  * @author Cedric Champeau
  */
 
@@ -44,6 +45,18 @@ afterMethodCall { mc ->
 unresolvedVariable { var ->
     if (isDynamic(var)) {
         currentScope.secondPassChecks << { checkBeanExists(var.name, var) }
+        if (enclosingBinaryExpression && isAssignment(enclosingBinaryExpression.operation.type)) {
+            def returnType = getType(enclosingBinaryExpression.leftExpression)
+            // we know the expected return type, it's interesting to type check it once we've found the ref'd bean
+            // so we add a check to be done later
+            currentScope.secondPassChecks << {
+                def beanType = currentScope.beans[var.name]
+                if (beanType && !isAssignableTo(beanType, returnType)) {
+                    addStaticTypeError "Expected a bean of type [${returnType.toString(false)}] but found ${beanType.toString(false)}", call
+                }
+            }
+            storeType(var, returnType)
+        }
         handled = true
     }
 }
