@@ -1,6 +1,11 @@
+import org.codehaus.groovy.ast.expr.ConstantExpression
+
 /**
  * A test DSL for a type checking extension which supports the BeanBuilder.
  *
+ * Step 1: Basic extension
+ * Step 2: Handle the "ref" method of bean builder
+ * 
  * @author Cedric Champeau
  */
 
@@ -49,5 +54,21 @@ methodNotFound { receiver, name, argumentList, argTypes, call ->
         }
 
         return newMethod(name, beanType) // return keyword optional
+    }
+}
+
+// handle the "ref" missing method
+methodNotFound { receiver, name, argumentList, argTypes, call ->
+    if ('ref'==name && argTypesMatches(argTypes,String) && (getArguments(call)[0] instanceof ConstantExpression)) {
+        // ref('foo')
+        return newMethod("refTo$name") {
+            def returnType = OBJECT_TYPE
+            // the return type of the method can be inferred from the LHS of an assignment
+            if (enclosingBinaryExpression && isAssignment(enclosingBinaryExpression.operation.type)) {
+                returnType = getType(enclosingBinaryExpression.leftExpression)
+            }
+
+            returnType
+        }
     }
 }
