@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+	<meta name="viewport" content="width=1024, user-scalable=no">
+
+	<title>Groovy 2: Type checking to the rescue!</title>
+	
+	<!-- Required stylesheet -->
+	<link rel="stylesheet" href="core/deck.core.css">
+	
+	<!-- Extension CSS files go here. Remove or add as needed. -->
+	<link rel="stylesheet" href="extensions/goto/deck.goto.css">
+	<link rel="stylesheet" href="extensions/menu/deck.menu.css">
+	<link rel="stylesheet" href="extensions/navigation/deck.navigation.css">
+	<link rel="stylesheet" href="extensions/status/deck.status.css">
+	<link rel="stylesheet" href="extensions/hash/deck.hash.css">
+	<link rel="stylesheet" href="extensions/scale/deck.scale.css">
+
+	<!-- Style theme. More available in /themes/style/ or create your own. -->
+	<link rel="stylesheet" href="themes/style/neon.css">
+	<link rel="stylesheet" href="css/extra.css">
+
+	<!-- Transition theme. More available in /themes/transition/ or create your own. -->
+	<link rel="stylesheet" href="themes/transition/horizontal-slide.css">
+
+    <!-- CodeMirror stylesheet -->
+    <link rel="stylesheet" href="extensions/codemirror/deck.codemirror.css">
+
+    <link rel="stylesheet" href="extensions/codemirror/themes/solarized.css">
+
+	<!-- Required Modernizr file -->
+	<script src="modernizr.custom.js"></script>
+</head>
+<body class="deck-container">
+
+<!-- Begin slides. Just make elements with a class of slide. -->
+
+<section class="slide">
+        <div class="vcenter">
+        <h1>Type checking your DSLs</h1>
+        <h2>Groovy&Grails eXchange, London</h2>
+        <h3>Cédric Champeau, SpringSource</h3>
+        <h4>Dec 13th, 2012</h4>
+            </div>
+</section>
+
+<section class="slide">
+	<h2>About me</h2>
+    <h3>Past : Groovy contributor</h3>
+                <ul>
+                    <li>Bugfixes
+                    <li>Modules: @Bytecode AST xform, GFreeMarker</li>
+                    <li>Core: compilation customizers, @xInterrupt, ...</li>
+                    <li>Used Groovy as a DSL for natural language processing</li>
+                </ul>
+    <h3>Present: Core Groovy committer</h3>
+            <ul>
+                <li>Working on bugfixes but main focus on Groovy 2.0</li>
+                <li>Static type checking</li>
+                <li>Static compilation</li>
+            </ul>
+    <h3>Follow me</h3>
+        <ul>
+            <li>Twitter: <a href="http://twitter.com/CedricChampeau" target="_blank">@CedricChampeau</a></li>
+            <li>Google+: <a href="http://gplus.to/cchampeau" target="_blank">http://gplus.to/cchampeau</a></li>
+            <li>Blog: <a href="http://jroller.com/melix" target="_blank">http://jroller.com/melix</a></li>
+        </ul>
+</section>
+
+<section class="slide">
+    <h2>Static type checking</h2>
+    <h3>Goal</h3>
+    <ul>
+        <li>Find errors at compile time (fail early)</li>
+        <li>because lots of code do not use dynamic features of Groovy</li>
+        <li>so many bugs can be discovered before production</li>
+        <li>Make java developers even happier</li>
+    </ul>
+    <h3>Turn the compiler grumpy</h3>
+    <ul>
+        <li>Report typos</li>
+        <li>missing method/property</li>
+        <li>Extension methods (aka DefaultGroovyMethods)</li>
+        <li>Type check assignments</li>
+        <li>Perform type inference</li>
+        <li>method/closure return type inference</li>
+        <li>generics type inference</li>
+   </ul>
+</section>
+
+<section class="slide">
+	<h2>Static Type Checking</h2>
+    <p>It's <b>optional</b></p>
+    <p>Triggered using <i>@TypeChecked</i> annotation</p>
+    <p>Annotate a class or a method</p>
+    <div>
+      <textarea id="ex1" name="ex1" class="code" mode="groovy" style="display: none;">
+@groovy.transform.TypeChecked
+class TypoInMethodName {
+    void foo() {}
+    void bar() {}
+
+    void method() {
+        foo() // no error, method is defined
+        baz() // error at compile time!
+    }
+}
+      </textarea>
+    </div>
+</section>
+
+<section class="slide">
+    <h2>Domain Specific Languages</h2>
+    <p>Focused</p>
+    <p>Readable</p>
+    <p>Practical</p>
+    <p>Usually <i>embeddable</i></p>
+    <p>Examples: SQL, HTML, XSLT, Ant/Maven/Gradle scripts...</p>
+</section>
+
+<section class="slide">
+    <h2>Static type checking</h2>
+    <p>Problems with <i>dynamic</i> code (of course!)</p>
+    <p>Problems with DSLs</p>
+    <div class="slide">
+        <textarea id="dsl1" name="dsl1" class="code" mode="groovy" style="display: none;">
+            please show me the code
+        </textarea>
+    </div>
+    <div class="slide">
+        <p>Equivalent to:</p>
+        <textarea id="dsl2" name="dsl2" class="code" mode="groovy" style="display: none;">
+            please(show).me(the).code
+        </textarea>
+    </div>
+</section>
+
+<section class="slide">
+    <h2>Solution</h2>
+    <textarea id="dsl2impl" name="dsl2impl" class="code" mode="groovy" style="display: none;">enum Action { show }
+import static Action.*
+@groovy.transform.TypeChecked
+class DSL {
+    String the // unused
+    Action action
+    DSL please(Action action) {
+        this.action=action
+        this
+    }
+    DSL me(unused) {
+        this
+    }
+    DSL getCode() {
+        if (action==show) { println 'the code' }
+    }
+    void foo() {
+        please show me the code
+    }
+}
+new DSL().foo() // success! (or is it?)
+    </textarea>
+</section>
+
+<section class="slide">
+    <h2>DSL type checking</h2>
+    <p>should not drive the implementation of the DSL</p>
+    <p>shoult not require wrappers of any sort</p>
+    <p>should be easy</p>
+</section>
+
+<section class="slide">
+    <h2>DSL type checking</h2>
+    <h3>New in Groovy 2.1: @DelegatesTo</h3>
+    <ul>
+        <li>Compatible with @CompileStatic</li>
+        <li>Helps the type checker knowing about the delegation metadata</li>
+        <li>original idea from Peter Niederwieser, at Groovy DevCon Copenhagen</li>
+    </ul>
+    <p>Example (exists in Gradle)</p>
+    <textarea id="dt1" name="dt1" class="code" mode="groovy" style="display: none;">def with(Object target, Closure arg) {
+    arg.delegate = target
+    arg()
+}
+class Foo {
+    def foo() { println 'Called foo' }
+}
+void test() {
+    def obj = new Foo()
+    with(obj) { foo() }
+}
+    </textarea>
+</section>
+
+<section class="slide">
+    <h2>DSL type checking</h2>
+    <h3>New in Groovy 2.1: @DelegatesTo</h3>
+    <textarea id="dt2" name="dt2" class="code" mode="groovy" style="display: none;">@groovy.transform.CompileStatic
+def with(Object target, Closure arg) {
+    arg.delegate = target
+    arg()
+}
+class Foo {
+    def foo() { println 'Called foo' }
+}
+@groovy.transform.CompileStatic
+void test() {
+    def obj = new Foo()
+    with(obj) { foo() } // [Static type checking] - Cannot find matching method ConsoleScript15#foo(). Please check if the declared type is right and if the method exists.
+}
+    </textarea>
+</section>
+
+<section class="slide">
+    <h2>DSL type checking</h2>
+    <h3>New in Groovy 2.1: @DelegatesTo</h3>
+    <textarea id="dt3" name="dt3" class="code" mode="groovy" style="display: none;">@groovy.transform.CompileStatic
+def with(Object target, @DelegatesTo(Foo) Closure arg) {
+                        // we delegate to the Foo class
+    arg.delegate = target
+    arg()
+}
+class Foo {
+    def foo() { println 'Called foo' }
+}
+@groovy.transform.CompileStatic
+void test() {
+    def obj = new Foo()
+    with(obj) { foo() } // passes!
+}
+test()
+    </textarea>
+</section>
+
+<section class="slide">
+    <h2>DSL type checking</h2>
+    <h3>New in Groovy 2.1: @DelegatesTo</h3>
+    <textarea id="dt4" name="dt4" class="code" mode="groovy" style="display: none;">@groovy.transform.CompileStatic
+def with(@DelegatesTo.Target Object target, @DelegatesTo Closure arg) {
+         // we delegate to the target parameter class
+    arg.delegate = target
+    arg()
+}
+class Foo {
+    def foo() { println 'Called foo' }
+}
+@groovy.transform.CompileStatic
+void test() {
+    def obj = new Foo()
+    with(obj) { foo() } // passes!
+}
+test()
+    </textarea>
+</section>
+
+<section class="slide">
+    <h2>A basic "embedded" DSL (1/2)</h2>
+    <ul>
+        <li>Principle: a user script ran through a <i>GroovyShell</i></li>
+        <li>We want to type check the user script</li>
+        <li>We use <i>CompilerConfiguration</i> to inject type checking</li>
+    </ul>
+    <textarea id="dsl5" name="dsl5" class="code" mode="groovy" style="display: none;">
+robot.move 100 // [Static type checking] - The variable [robot] is undeclared
+    </textarea>
+</section>
+
+<section class="slide">
+    <h2>A basic "embedded" DSL (1/2)</h2>
+    <ul>
+        <li><i>robot</i> is an injected variable (using the <i>binding</i>)</li>
+        <li>we know its type (class <i>Robot</i>)</li>
+        <li>How can I help the compiler?</li>
+    </ul>
+</section>
+
+
+<section class="slide">
+    <h2>Upcoming in Groovy 2.1: type checking extensions</h2>
+    <ul>
+        <li>Let's you hook into the type checking process</li>
+        <li>Gives you the ability to help the type checker</li>
+        <li>Made easy thanks to a DSL</li>
+    </ul>
+    <h3>Work in progress!</h3>
+</section>
+
+<section class="slide">
+    <h2>The "robot" type checking extension</h2>
+    <textarea id="robot_ext" name="robot_ext" class="code" mode="groovy" style="display: none;">// Type checking extension for "Robot" DSL
+unresolvedVariable { var ->
+    if ('robot' == var.name) {
+        storeType(var, classNodeFor(Robot))
+        handled = true
+    }
+}
+    </textarea>
+</section>
+
+<section class="slide">
+    <h2>Improved type checking</h2>
+    <p>Principle: throwing errors where Java would not</p>
+    <div class="slide">
+        <textarea id="sprintf" name="sprintf" class="code" mode="groovy" style="display: none;">// Courtesy of Paul King
+sprintf("Count = %d", count) // check that count is a Number (Integral number?)
+sprintf("Euler's constant = %+10.4f", Math.E) // check that the argument is a Number (float or double?)
+sprintf("Duke's Birthday: %1$tm %1$te,%1$tY", c) // check that c is a Date
+        </textarea>
+    </div>
+</section>
+<section class="slide">
+    <h3>Sprintf type checking extension</h3>
+    <textarea id="sprintfdsl" name="sprintfdsl" class="code" mode="groovy" style="display: none;">afterMethodCall { mc ->
+    def method = getTargetMethod(mc)
+    if (isExtensionMethod(method) && method.name == 'sprintf') {
+        def argList = getArguments(mc)
+        if (argList && isConstantExpression(argList[0])) {
+            def pattern = argList[0].text
+            def codes = pattern.replaceAll(/[^%]*%([a-zA-Z]+)/, '_$1').tokenize('_')
+            def args = getArgumentTypes(argList).toList().tail()
+            if (args.size() != codes.size()) {
+                addStaticTypeError("Found ${args.size()} parameters for sprintf call with ${codes.size()} conversion code placeholders in the format string", argList)
+                return
+            }
+            def codeTypes = codes.collect { code ->
+                switch (code) {
+                    case 's': return STRING_TYPE
+                    case 'd': return int_TYPE
+                    case 'tF': return classNodeFor(Date)
+                    default: return null
+                }
+            }
+            if (codeTypes != args) {
+                addStaticTypeError("Parameter types didn't match types expected from the format String: ", argList)
+                (0..&lt;args.size()).findAll { args[it] != codeTypes[it] }.each { n ->
+                    String msg = "For placeholder ${n + 1} [%${codes[n]}] expected '${codeTypes[n].toString(false)}' but was '${args[n].toString(false)}'"
+                    addStaticTypeError(msg, argList.getExpression(n + 1))
+                }
+            }
+        }
+    }
+}
+</textarea>
+</section>
+
+<section class="slide">
+    <h2>Writing type checking extensions</h2>
+    <h3>The BeanBuilder example</h3>
+    <p>BeanBuilder is a Groovy builder for Spring application contexts.</p>
+    <p>Makes use of builder-like syntax</p>
+    <p>Has some nice forward references that a classic type checker cannot resolve</p>
+</section>
+
+<section class="slide">
+    <h2>Live demo</h2>
+    <center>
+        <img src="images/computer_problems.png"><br>
+        <a href="http://xkcd.com/722/" target="_blank">xkcd.com/722</a>
+    </center>
+</section>
+
+<section class="slide">
+    <h2>Questions?</h2>
+    <div class="slide">
+        Thank you!
+    </div>
+</section>
+
+<!-- End slides. -->
+
+
+<!-- Begin extension snippets. Add or remove as needed. -->
+
+<!-- deck.navigation snippet -->
+<a href="#" class="deck-prev-link" title="Previous">&#8592;</a>
+<a href="#" class="deck-next-link" title="Next">&#8594;</a>
+
+<!-- deck.status snippet -->
+<p class="deck-status">
+	<span class="deck-status-current"></span>
+	/
+	<span class="deck-status-total"></span>
+</p>
+
+<!-- deck.goto snippet -->
+<form action="." method="get" class="goto-form">
+	<label for="goto-slide">Go to slide:</label>
+	<input type="text" name="slidenum" id="goto-slide" list="goto-datalist">
+	<datalist id="goto-datalist"></datalist>
+	<input type="submit" value="Go">
+</form>
+
+<!-- deck.hash snippet -->
+<a href="." title="Permalink to this slide" class="deck-permalink">#</a>
+
+<!-- End extension snippets. -->
+
+
+<!-- Required JS files. -->
+<script src="jquery-1.7.2.min.js"></script>
+<script src="core/deck.core.js"></script>
+<script src="extensions/codemirror/codemirror.js"></script>
+
+<!-- Extension JS files. Add or remove as needed. -->
+<script src="core/deck.core.js"></script>
+<script src="extensions/goto/deck.goto.js"></script>
+<script src="extensions/hash/deck.hash.js"></script>
+<script src="extensions/status/deck.status.js"></script>
+<script src="extensions/navigation/deck.navigation.js"></script>
+<script src="extensions/scale/deck.scale.js"></script>
+<script src="extensions/codemirror/deck.codemirror.js"></script>
+<script src="extensions/codemirror/mode/javascript/javascript.js"></script>
+<script src="extensions/codemirror/mode/groovy/groovy.js"></script>
+
+<!-- Initialize the deck. You can put this in an external file if desired. -->
+<script>
+	$(function() {
+        $.deck('.slide');
+        var opts = $.deck('getOptions');
+        opts.codemirror.theme = 'solarized';
+	});
+</script>
+</body>
+</html>

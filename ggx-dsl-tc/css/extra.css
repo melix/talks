@@ -1,0 +1,16 @@
+.slide .front-slide {
+    background-position: top center;
+    background-repeat: no-repeat;
+    text-align: center;
+}
+
+.front-slide .title {
+    font-size: 35pt;
+    font-weight: bolder;
+}
+.front-slide .subtitle {
+    font-size: 25pt;
+}
+.front-slide .subtitle2 {
+    font-size: 20pt;
+}
