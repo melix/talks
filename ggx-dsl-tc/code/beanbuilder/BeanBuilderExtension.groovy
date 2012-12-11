@@ -8,7 +8,8 @@ import org.codehaus.groovy.ast.expr.ConstantExpression
  * Step 3: Check that the assignment is valid if we find the referenced bean
  * Step 4: The "handle=true" flag
  * Step 5: What we do for ref can be done for dynamic variables too
- * 
+ * Step 6: Refactor code for referenced beans type checking
+ *
  * @author Cedric Champeau
  */
 
@@ -42,21 +43,34 @@ afterMethodCall { mc ->
     }
 }
 
+// combines two deferred operations:
+// 1. find if a bean is defined
+// 2. if it is defined and we're in an assignment, type check the assignment
+def checkReferencedBean(beanName, source) {
+    // add a check that the referenced bean exists
+    currentScope.secondPassChecks << { checkBeanExists(beanName, source) }
+    // determine the type of the expected bean
+    def returnType = OBJECT_TYPE // default
+    if (enclosingBinaryExpression && isAssignment(enclosingBinaryExpression.operation.type)) {
+        returnType = getType(enclosingBinaryExpression.leftExpression)
+        // we know the expected return type, it's interesting to type check it once we've found the ref'd bean
+        // so we add a check to be done later
+        currentScope.secondPassChecks << {
+            def beanType = currentScope.beans[beanName]
+            if (beanType && !isAssignableTo(beanType, returnType)) {
+                addStaticTypeError "Expected a bean of type [${returnType.toString(false)}] but found ${beanType.toString(false)}", source
+            }
+        }
+    }
+
+    // return the type of the bean
+    returnType
+}
+
 unresolvedVariable { var ->
     if (isDynamic(var)) {
-        currentScope.secondPassChecks << { checkBeanExists(var.name, var) }
-        if (enclosingBinaryExpression && isAssignment(enclosingBinaryExpression.operation.type)) {
-            def returnType = getType(enclosingBinaryExpression.leftExpression)
-            // we know the expected return type, it's interesting to type check it once we've found the ref'd bean
-            // so we add a check to be done later
-            currentScope.secondPassChecks << {
-                def beanType = currentScope.beans[var.name]
-                if (beanType && !isAssignableTo(beanType, returnType)) {
-                    addStaticTypeError "Expected a bean of type [${returnType.toString(false)}] but found ${beanType.toString(false)}", call
-                }
-            }
-            storeType(var, returnType)
-        }
+        def beanType = checkReferencedBean(var.name, var)
+        storeType(var, beanType)
         handled = true
     }
 }
@@ -78,23 +92,8 @@ methodNotFound { receiver, name, argumentList, argTypes, call ->
     if ('ref'==name && argTypesMatches(argTypes,String) && (getArguments(call)[0] instanceof ConstantExpression)) {
         // ref('foo')
         return newMethod("refTo$name") {
-            def returnType = OBJECT_TYPE
-            // the return type of the method can be inferred from the LHS of an assignment
-            if (enclosingBinaryExpression && isAssignment(enclosingBinaryExpression.operation.type)) {
-                returnType = getType(enclosingBinaryExpression.leftExpression)
-                // we know the expected return type, it's interesting to type check it once we've found the ref'd bean
-                // so we add a check to be done later
-                def beanName = getArguments(call)[0].text
-                currentScope.secondPassChecks << { checkBeanExists(beanName, call)}
-                currentScope.secondPassChecks << {
-                    def beanType = currentScope.beans[beanName]
-                    if (beanType && !isAssignableTo(beanType, returnType)) {
-                        addStaticTypeError "Expected a bean of type [${returnType.toString(false)}] but found ${beanType.toString(false)}", call
-                    }
-                }
-            }
-
-            returnType
+            def beanName = getArguments(call)[0].text
+            checkReferencedBean(beanName, call)
         }
     }
 }
