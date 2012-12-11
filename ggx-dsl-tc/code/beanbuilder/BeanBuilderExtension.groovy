@@ -5,7 +5,8 @@ import org.codehaus.groovy.ast.expr.ConstantExpression
  *
  * Step 1: Basic extension
  * Step 2: Handle the "ref" method of bean builder
- * 
+ * Step 3: Check that the assignment is valid if we find the referenced bean
+ *
  * @author Cedric Champeau
  */
 
@@ -66,6 +67,16 @@ methodNotFound { receiver, name, argumentList, argTypes, call ->
             // the return type of the method can be inferred from the LHS of an assignment
             if (enclosingBinaryExpression && isAssignment(enclosingBinaryExpression.operation.type)) {
                 returnType = getType(enclosingBinaryExpression.leftExpression)
+                // we know the expected return type, it's interesting to type check it once we've found the ref'd bean
+                // so we add a check to be done later
+                def beanName = getArguments(call)[0].text
+                currentScope.secondPassChecks << { checkBeanExists(beanName, call)}
+                currentScope.secondPassChecks << {
+                    def beanType = currentScope.beans[beanName]
+                    if (beanType && !isAssignableTo(beanType, returnType)) {
+                        addStaticTypeError "Expected a bean of type [${returnType.toString(false)}] but found ${beanType.toString(false)}", call
+                    }
+                }
             }
 
             returnType
