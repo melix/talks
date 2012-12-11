@@ -6,6 +6,7 @@ import org.codehaus.groovy.ast.expr.ConstantExpression
  * Step 1: Basic extension
  * Step 2: Handle the "ref" method of bean builder
  * Step 3: Check that the assignment is valid if we find the referenced bean
+ * Step 4: The "handle=true" flag
  *
  * @author Cedric Champeau
  */
@@ -43,6 +44,7 @@ afterMethodCall { mc ->
 unresolvedVariable { var ->
     if (isDynamic(var)) {
         currentScope.secondPassChecks << { checkBeanExists(var.name, var) }
+        handled = true
     }
 }
 
