@@ -5,7 +5,7 @@
 	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
 	<meta name="viewport" content="width=1024, user-scalable=no">
 
-	<title>Groovy 2: Type checking to the rescue!</title>
+	<title>Type checking your DSLs</title>
 	
 	<!-- Required stylesheet -->
 	<link rel="stylesheet" href="core/deck.core.css">
@@ -346,11 +346,53 @@ sprintf("Duke's Birthday: %1$tm %1$te,%1$tY", c) // check that c is a Date
 
 <section class="slide">
     <h2>Writing type checking extensions</h2>
+    <h3>A lot of possibilities are open now!</h3>
+<p>What if you could introspect SQL queries?</p>
+	<textarea id="bbex" name="bbex" class="code" mode="groovy" style="display: none;">
+def foo = 'cheese'
+
+@TestConnection('jdbc:hsql:compile')
+def sql = Sql.newInstance("jdbc:mysql://localhost:3306/mydb", "user",
+                      "pswd", "com.mysql.jdbc.Driver")
+
+// now you can parse it, type check at compile time!
+sql.eachRow("select * from FOOD where type=${foo}") {
+    println "Gromit likes ${it.name}"
+}
+</textarea>
+</section>
+
+<section class="slide">
+    <h2>Writing type checking extensions</h2>
     <h3>The BeanBuilder example</h3>
     <p>BeanBuilder is a Groovy builder for Spring application contexts.</p>
     <p>Makes use of builder-like syntax</p>
     <p>Has some nice forward references that a classic type checker cannot resolve</p>
 </section>
+
+<section class="slide">
+    <h2>Writing type checking extensions</h2>
+    <h3>The BeanBuilder example</h3>
+	<textarea id="bbex" name="bbex" class="code" mode="groovy" style="display: none;">def bb = new BeanBuilder()
+
+bb.beans {
+
+    dataSource(BasicDataSource) {
+        driverClassName = "org.h2.Driver"
+        url = "jdbc:h2:mem:grailsDB"
+        username = "sa"
+        password = ""
+    }
+
+    sessionFactory(ConfigurableLocalSessionFactoryBean) {
+        dataSource = ref('dataSource')
+        hibernateProperties = ["hibernate.hbm2ddl.auto": "create-drop",
+                               "hibernate.show_sql":     "true"]
+    }
+}
+	</textarea>
+</section>
+
 
 <section class="slide">
     <h2>Live demo</h2>
