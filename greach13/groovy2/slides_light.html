@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/html" xmlns="http://www.w3.org/1999/html">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+	<meta name="viewport" content="width=1024, user-scalable=no">
+
+	<title>Groovy 2 update</title>
+	
+	<!-- Required stylesheet -->
+	<link rel="stylesheet" href="core/deck.core.css">
+	
+	<!-- Extension CSS files go here. Remove or add as needed. -->
+	<link rel="stylesheet" href="extensions/goto/deck.goto.css">
+	<link rel="stylesheet" href="extensions/menu/deck.menu.css">
+	<link rel="stylesheet" href="extensions/navigation/deck.navigation.css">
+	<link rel="stylesheet" href="extensions/status/deck.status.css">
+	<link rel="stylesheet" href="extensions/hash/deck.hash.css">
+	<link rel="stylesheet" href="extensions/scale/deck.scale.css">
+
+	<!-- Style theme. More available in /themes/style/ or create your own. -->
+	<link rel="stylesheet" href="themes/style/s2gx.css">
+	<link rel="stylesheet" href="css/extra.css">
+
+	<!-- Transition theme. More available in /themes/transition/ or create your own. -->
+	<link rel="stylesheet" href="themes/transition/horizontal-slide.css">
+
+    <!-- CodeMirror stylesheet -->
+    <link rel="stylesheet" href="extensions/codemirror/deck.codemirror.css">
+
+    <link rel="stylesheet" href="extensions/codemirror/themes/neat.css">
+
+	<!-- Required Modernizr file -->
+	<script src="modernizr.custom.js"></script>
+</head>
+<body class="deck-container">
+
+<!-- Begin slides. Just make elements with a class of slide. -->
+
+<section class="slide">
+        <div class="vcenter">
+        <h1>Groovy 2 update</h1>
+        <h2>Greach, Madrid, Spain</h2>
+        <h3>Cédric Champeau, SpringSource</h3>
+        <h4>Jan 2013 25th</h4>
+            </div>
+</section>
+
+<section class="slide">
+	<h2>About me</h2>
+    <h3>Past : Groovy contributor</h3>
+                <ul>
+                    <li>Bugfixes
+                    <li>Modules: @Bytecode AST xform, GFreeMarker</li>
+                    <li>Core: compilation customizers, @xInterrupt, ...</li>
+                    <li>Used Groovy as a DSL for natural language processing</li>
+                </ul>
+    <h3>Present: Core Groovy committer</h3>
+            <ul>
+                <li>Working on bugfixes but main focus on Groovy 2.0</li>
+                <li>Static type checking</li>
+                <li>Static compilation</li>
+            </ul>
+    <h3>Follow me</h3>
+        <ul>
+            <li>Twitter: <a href="http://twitter.com/CedricChampeau" target="_blank">@CedricChampeau</a></li>
+            <li>Google+: <a href="http://gplus.to/cchampeau" target="_blank">http://gplus.to/cchampeau</a></li>
+            <li>Blog: <a href="http://jroller.com/melix" target="_blank">http://jroller.com/melix</a></li>
+        </ul>
+</section>
+<section class="slide">
+    <div class="vcenter">
+        <h2>Groovy 2</h2>
+        <h3>Modularity</h3>
+    </div>
+</section>
+
+<section class="slide">
+    <h2>Modularity</h2>
+    <ul>
+        <li>Groovy’s « all » JAR weighs in at 6 MB</li>
+        <li>Nobody needs everything</li>
+        <li>Provide a smaller core<ul><li>Template engine,  Ant scripting, Swing UI building...</li></ul></li>
+        <li>Provide hooks for setting up DGM methods, etc.<ul><li>and several smaller JARs per feature</li></ul></li>
+    </ul>
+</section>
+
+<section class="slide">
+    <h2>The new JARs</h2>
+    <ul>
+        <li>A smaller JAR: 3MB</li>
+        <li>Modules</li>
+        <img src="images/modules.png" border="0">
+    </ul>
+</section>
+
+<section class="slide">
+    <h2>Extension modules</h2>
+    <ul>
+        <li>idea: bring <i>StringUtils</i> as a first-class citizen</li>
+        <li>provide your own extensions to the GDK</li>
+        <li>call them from Groovy code</li>
+    </ul>
+    <textarea id="extension1" name="extension1" class="code" mode="groovy" style="display: none;">
+package foo
+
+class StringExtension {
+    static String shift(String self, int nb) {
+      int len =self.length()
+      def sb = new StringBuilder(len)
+      len.times { i ->
+        sb.append(self[(i+nb)%len])
+      }
+      sb
+    }
+}
+// usage: assert 'foo'.shift(1) == 'oof'
+    </textarea>
+</section>
+<section class="slide">
+    <h2>Extension modules</h2>
+    <ul>
+        <li>Support for static methods too</li>
+    </ul>
+    <textarea id="extension2" name="extension2" class="code" mode="groovy" style="display: none;">
+package foo
+
+class StaticStringExtension {
+    static void hi(String self) {
+      println 'Hi!'
+    }
+}
+// usage: String.hi()
+    </textarea>
+</section>
+
+<section class="slide">
+    <h2>Extension module descriptor</h2>
+    <ul>
+        <li>Descriptor in: META-INF/services/org.codehaus.groovy.runtime.ExtensionModule</li>
+    </ul>
+    <textarea id="extension3" name="extension3" class="code" mode="groovy" style="display: none;">
+moduleName = stringExtensions
+moduleVersion = 1.0
+// comma-separated list of classes
+extensionClasses = foo.StringExtension
+// comma-separated list of classes
+staticExtensionClasses = foo.StaticStringExtension
+    </textarea>
+    <ul>
+        <li>Real-life example: Tim Yate's<ul>
+            <li><a href="http://timyates.github.com/groovy-stream" target="_blank">Lazy Streams</a></li>
+            <li><a href="https://github.com/timyates/groovy-common-extensions" target="_blank">Common Extensions</a></li>
+        </ul></li>
+    </ul>
+</section>
+
+<section class="slide">
+    <div class="vcenter">
+        <h2>Groovy 2</h2>
+        <h3>JDK 7 enhancements</h3>
+    </div>
+</section>
+
+<section class="slide">
+<h2>JDK 7 enhancements: Binary literals</h2>
+    <ul>
+        <li>We had decimal, octal and hexadecimal
+notations for number literals</li>
+        <li>We can now use binary representations too</li>
+    </ul>
+    <textarea id="binarylit" name="binarylit" class="code" mode="groovy" style="display: none;">
+int x = 0b10101111
+assert x == 175
+ 
+byte aByte = 0b00100001
+assert aByte == 33
+ 
+int anInt = 0b1010000101000101
+assert anInt == 41285
+        </textarea>
+</section>
+
+<section class="slide">
+<h2>JDK 7 enhancements: Underscores in literals</h2>
+    <ul>
+        <li>Now we can also add underscores
+in number literals for more readability</li>
+    </ul>
+    <textarea id="underscore" name="underscore" class="code" mode="groovy" style="display: none;">
+long creditCardNumber = 1234_5678_9012_3456L
+long socialSecurityNumbers = 999_99_9999L
+float monetaryAmount = 12_345_132.12
+long hexBytes = 0xFF_EC_DE_5E
+long hexWords = 0xFFEC_DE5E
+long maxLong = 0x7fff_ffff_ffff_ffffL
+long alsoMaxLong = 9_223_372_036_854_775_807L
+long bytes = 0b11010010_01101001_10010100_10010010
+        </textarea>
+</section>
+
+<section class="slide">
+<h2>JDK 7 enhancements: Multicatch</h2>
+    <ul>
+        <li>One block for multiple exception caught</li>
+    </ul>
+    <textarea id="multicatch" name="multicatch" class="code" mode="groovy" style="display: none;">
+try {
+    /* ... */
+} catch(IOException | NullPointerException e) {
+    /* one block to treat 2 exceptions */
+}
+        </textarea>
+</section>
+
+<section class="slide">
+    <div class="vcenter">
+        <h2>Groovy 2</h2>
+        <h3>InvokeDynamic support</h3>
+    </div>
+</section>
+
+<section class="slide">
+    <h2>InvokeDynamic</h2>
+    <ul>
+        <li>Groovy 2.0 supports JDK 7’s invokeDynamic
+        <ul>
+            <li>compiler has a flag for compiling against JDK 7</li>
+            <li>might use the invokeDynamic backport for < JDK 7</li>
+        </ul>
+        </li>
+        <li>Benefits
+        <ul>
+            <li>more runtime performance!</li>
+            <li>at least as fast as current « dynamic » Groovy</li>
+        </ul>
+        <li>in the long run, will allow us to get rid of code!
+        <ul>
+            <li>call site caching, thanks to MethodHandles</li>
+            <li>metaclass registry, thanks to ClassValues</li>
+            <li>will let the JIT inline calls more easily</li>
+        </ul>
+        </li>
+    </ul>
+</section>
+
+<section class="slide">
+    <div class="vcenter">
+        <h2>Groovy 2</h2>
+        <h3>Static type checking</h3>
+    </div>
+</section>
+
+<section class="slide">
+    <h2>Static type checking</h2>
+    <h3>Goal</h3>
+    <ul>
+        <li>Find errors at compile time (fail early)</li>
+        <li>because lots of code do not use dynamic features of Groovy</li>
+        <li>so many bugs can be discovered before production</li>
+        <li>Make java developers even happier</li>
+    </ul>
+    <h3>Turn the compiler grumpy</h3>
+    <ul>
+        <li>Report typos</li>
+        <li>missing method/property</li>
+        <li>Extension methods (aka DefaultGroovyMethods)</li>
+        <li>Type check assignments</li>
+        <li>Perform type inference</li>
+        <li>method/closure return type inference</li>
+        <li>generics type inference</li>
+   </ul>
+</section>
+
+<! -- Type checking examples -->
+<section class="slide">
+    <h2>Static type checking: typos</h2>
+    <textarea id="tc1" name="tc1" class="code" mode="groovy" style="display: none;">
+import groovy.transform.TypeChecked
+ 
+void method() {}
+ 
+@TypeChecked test() {
+    // Cannot find matching method metthhoood()
+    metthhoood()
+ 
+    def name = "Guillermo"
+    // variable naamme is undeclared
+    println naamme
+}
+    </textarea>
+</section>
+<section class="slide">
+    <h2>Static type checking: assignments</h2>
+    <textarea id="tc2" name="tc2" class="code" mode="groovy" style="display: none;">
+// cannot assign value of type... to variable...
+int x = new Object()
+Set set = new Object()
+ 
+def o = new Object()
+int x = o
+ 
+String[] strings = ['a','b','c']
+int str = strings[0]
+ 
+// cannot find matching method plus()
+int i = 0
+i += '1'
+    </textarea>
+</section>
+<section class="slide">
+    <h2>Static type checking: return types</h2>
+    <textarea id="tc3" name="tc3" class="code" mode="groovy" style="display: none;">
+// checks if/else branch return values
+@TypeChecked
+int method() {
+    if (true) { 'String' }
+    else { 42 }
+}
+// works for switch/case & try/catch/finally
+ 
+// transparent toString() implied
+@TypeChecked
+String greeting(String name) {
+    def sb = new StringBuilder()
+    sb << "Hi " << name
+}
+    </textarea>
+</section>
+<section class="slide">
+    <h2>Static type checking: type inference</h2>
+    <textarea id="tc4" name="tc4" class="code" mode="groovy" style="display: none;">
+@TypeChecked test() {
+    def name = "  Guillaume  "
+ 
+    // String type infered (even inside GString)
+    println "NAME = ${name.toUpperCase()}"
+ 
+    // Groovy GDK method support
+    // (GDK operator overloading too)
+    println name.trim()
+ 
+    int[] numbers = [1, 2, 3]
+    // Element n is an int
+    for (int n in numbers) {
+        println n
+    }
+}
+</textarea>
+</section>
+<section class="slide">
+    <h2>Static type checking: mixing static and dynamic</h2>
+    <textarea id="tc5" name="tc5" class="code" mode="groovy" style="display: none;">
+@TypeChecked
+String greeting(String name) {
+    // call method with dynamic behavior
+    // but with proper signature
+    generateMarkup(name.toUpperCase())
+}
+ 
+// usual dynamic behavior
+String generateMarkup(String name) {
+    def sw = new StringWriter()
+    new MarkupBuilder(sw).html {
+        body {
+            div name
+        }
+    }
+    sw.toString()
+}
+</textarea>
+</section>
+<section class="slide">
+    <h2>Static type checking: instanceof</h2>
+    <textarea id="tc6" name="tc6" class="code" mode="groovy" style="display: none;">
+@TypeChecked
+void test(Object val) {
+
+    if (val instanceof String) {
+        println val.toUpperCase()
+    } else if (val instanceof Number) {
+        println "X" * val.intValue()
+    }
+}
+</textarea>
+</section>
+<section class="slide">
+    <h2>Static type checking: lowest upper bound</h2>
+    <p>Represents a "common super type" that may not exist as a real class/interface</p>
+    <textarea id="tc7" name="tc7" class="code" mode="groovy" style="display: none;">
+@TypeChecked test() {
+    // an integer and a BigDecimal
+    return [1234, 3.14]
+}
+</textarea>
+    <p class="slide">List&lt;Comparable &amp; Serializable&gt;</p>
+</section>
+<section class="slide">
+    <h2>Static type checking: flow typing</h2>
+    <p>Static type checking shouldn’t complain even for bad coding practicies which work without type checks</p>
+    <textarea id="tc8" name="tc8" class="code" mode="groovy" style="display: none;">
+@TypeChecked test() {
+    def var = 123         // inferred type is int
+    int x = var           // var is an int
+    var = "123"           // assign var with a String
+
+    x = var.toInteger()   // no problem, no need to cast
+
+    var = 123
+    x = var.toUpperCase() // error, var is int!
+}
+</textarea>
+</section>
+
+<!-- STC gotchas -->
+<section class="slide">
+    <h2>STC gotchas: dynamic vs static</h2>
+    <ul>
+        <li>Type checking works at compile-time
+        <ul>
+            <li>adding @TypeChecked doesn’t change behavior</li>
+            <li>do not confuse with static compilation</li>
+        </ul>
+        </li>
+        <li>Most dynamic features cannot be type checked
+        <ul>
+            <li>metaclass changes, categories</li>
+            <li>dynamically bound variables (ex: script’s binding)</li>
+        </ul>
+        </li>
+        <li>But compile-time metaprogramming works
+        <ul><li>as long as proper type information is defined</li></ul>
+        </li>
+    </ul>
+</section>
+<section class="slide">
+    <h2>STC gotchas: closure argument types</h2>
+    <textarea id="tc9" name="tc9" class="code" mode="groovy" style="display: none;">
+@TypeChecked test() {
+    ["a", "b", "c"].collect { String it -> // you need to declare the type
+        it.toUpperCase()
+    }
+}
+</textarea>
+    <div class="slide">
+        <ul>
+            <li>Type descriptors not sufficient to describe closure arguments</li>
+            <li>Enhancement should be proposed for Groovy 2.2</li>
+        </ul>
+    </div>
+</section>
+<section class="slide">
+    <h2>STC gotchas: closure shared variables 1/2</h2>
+    <ul>
+        <li>in general, you cannot know when a closure will be called</li>
+        <li>only method calls on LUB should be allowed</li>
+    </ul>
+    <textarea id="csv1" class="code" mode="groovy" style="display: none;">
+@TypeChecked test() {
+    def var = "abc"
+    def cl = { var = new Date() }
+    if (random) cl()
+    var.toUpperCase()  // Not OK!
+}
+    </textarea>
+</section>
+<section class="slide">
+    <h2>STC gotchas: closure shared variables 2/2</h2>
+    <ul>
+        <li>in general, you cannot know when a closure will be called</li>
+        <li>only method calls on LUB should be allowed</li>
+    </ul>
+    <textarea id="csv2" class="code" mode="groovy" style="display: none;">
+class A           { void foo() {} }
+class B extends A { void bar() {} }
+
+@TypeChecked test() {
+    def var = new A()
+    def cl = { var = new B() }
+    if (random) cl()
+    var.foo()   // OK!
+}
+    </textarea>
+</section>
+
+<section class="slide">
+    <div class="vcenter">
+        <h2>Groovy 2</h2>
+        <h3>Static compilation</h3>
+    </div>
+</section>
+
+<!-- Static compilation slides -->
+<section class="slide">
+    <h2>Static compilation</h2>
+    <ul>
+        <li>Given your Groovy code can be type checked...
+        <ul>
+            <li>we can as well compile it « statically »</li>
+            <li>ie. generate the same byte code as javac</li>
+        </ul>
+        </li>
+        <li>Also interesting for those stuck in JDK < 7
+        <ul>
+            <li>to benefit from performance improvements</li>
+        </ul>
+        </li>
+    </ul>
+    <div class="slide">
+        <p>Only change required: <i>@TypeChecked</i> to <i>@CompileStatic</i></p>
+    </div>
+</section>
+<section class="slide">
+    <h2>Static compilation: pros</h2>
+    <p>You gain</p>
+    <ul>
+        <li>Type safety
+        <ul>
+            <li>thanks to static type checking</li>
+            <li>static compilation builds upon static type checking</li>
+        </ul>
+        </li>
+        <li>Faster code
+        <ul>
+            <li>as close as possible to Java’s performance</li>
+            <li>Code immune to « monkey patching »</li>
+            <li>metaprogramming badly used can interfere with framework code</li>
+            <li>Smaller bytecode size</li>
+        </ul></li>
+    </ul>
+</section>
+<section class="slide">
+    <h2>Static compilation: cons</h2>
+    <p>But you loose</p>
+    <ul>
+        <li>Dynamic features
+        <ul>
+            <li>metaclass changes, categories, etc.</li>
+        </ul>
+        </li>
+        <li>Dynamic method dispatch
+        <ul>although as close as possible to « dynamic » Groovy</ul></li>
+    </ul>
+</section>
+
+<!--
+  -- Groovy 2.1 --
+  -->
+<section class="slide">
+    <div class="vcenter">
+        <h2>Groovy 2.1</h2>
+    </div>
+</section>
+<section class="slide">
+    <h2>Full InvokeDynamic support</h2>
+    <ul>
+        <li>In Groovy 2.0, not all call paths
+            <ul>
+                <li>were going through invoke dynamic calls</li>
+                <li>essentially method calls only</li>
+                <li>still used call site caching techniques</li>
+            </ul>
+        </li>
+        <li>On JDK 7 with the « indy » JAR, Groovy 2.1 uses invoke dynamic everywhere</li>
+        <li>On JDK < 7, still uses call site caching</li>
+    </ul>
+</section>
+
+<section class="slide">
+    <div class="vcenter">
+        <h2>Groovy 2.1</h2>
+        <h3>@DelegatesTo</h3>
+    </div>
+</section>
+
+<!-- @DelegatesTo -->
+<section class="slide">
+    <h2>@DelegatesTo</h2>
+    <ul>
+        <li>Static type checking works nicely for certain Domain-Specific Languages
+        <ul><li>command chains, extension methods, etc.</li></ul></li>
+    </ul>
+    <ul>
+        <li>But for changes of delegation within closures, it’s not helping
+        <ul><li>often used by DSLs like within Gradle</li>
+        <li>also interesting for IDE/documentation</li></ul>
+        </li>
+    </ul>
+    <p>Enters @DelegatesTo!</p>
+</section>
+<section class="slide">
+    <h2>@DelegatesTo</h2>
+    <p>Define a class that has a foo() method</p>
+   <textarea id="dto1" class="code" mode="groovy" style="display: none;">
+class ExecSpec {
+    void foo()
+}</textarea>
+    <p>Define a with method that does a "reversed with"</p>
+       <textarea id="dto2" class="code" mode="groovy" style="display: none;">
+void with(ExecSpec sp, Closure c) {
+    c.delegate = sp
+    c()
+}
+</textarea><p>Use it</p>
+       <textarea id="dto3" class="code" mode="groovy" style="display: none;">
+with(spec) {
+    foo() // how do we know this is valid?
+}
+       </textarea>
+    <p>Will IDE know about foo()? Would the type checker know?</p>
+</section>
+<section class="slide">
+    <h2>@DelegatesTo</h2>
+    <ul>
+        <li>Solution
+        <ul>
+            <li>Annotate with @DelegatesTo</li>
+            <li>Specify the delegate type as argument</li>
+        </ul>
+        </li>
+    </ul>
+       <textarea id="dto4" class="code" mode="groovy" style="display: none;">
+void with(ExecSpec sp, @DelegatesTo(ExecSpec) Closure c) {
+    c.delegate = sp
+    c()
+}
+</textarea>
+</section>
+<section class="slide">
+    <h2>@DelegatesTo</h2>
+    <ul>
+        <li>Solution 2
+        <ul>
+            <li>Annotate with @DelegatesTo</li>
+            <li>Set the delegation target</li>
+        </ul>
+        </li>
+    </ul>
+       <textarea id="dto5" class="code" mode="groovy" style="display: none;">
+void with(@DelegatesTo.Target ExecSpec sp, @DelegatesTo Closure c) {
+    c.delegate = sp
+    c()
+}
+</textarea>
+</section>
+<section class="slide">
+    <h2>@DelegatesTo: advantages</h2>
+    <ul>
+        <li>For DSLs using Groovy closure delegation</li>
+        <li>Great for...
+        <ul>
+            <li>documenting APIs</li>
+            <li>IDE integration
+            <ul><li>code completion, code navigation...</li></ul>
+            </li>
+        </ul>
+        </li>
+        <li>working nicely with static type checking and static compilation</li>
+        <li>See more tomorrow! (10:15, Type checking your DSLs)</li>
+    </ul>
+</section>
+
+<section class="slide">
+    <div class="vcenter">
+        <h2>Groovy 2.1</h2>
+        <h3>@Alias</h3>
+    </div>
+</section>
+<!-- Alias annotations -->
+<section class="slide">
+    <h2>Alias annotations</h2>
+    <ul>
+        <li>Tired of annotation hell?</li>
+        <li>Want to create custom annotation combining others?</li>
+        <li>Still want to be able to change parameters?</li>
+    </ul>
+</section>
+<section class="slide">
+    <h2>Alias annotations</h2>
+    <p>The verbose declaration</p>
+    <textarea id="alias1" class="code" mode="groovy" style="display: none;">
+boolean create(@NotNull @NotBlank @Regex('...') String email) { ... }
+</textarea>
+    <div class="slide">
+    <p>Define an alias</p>
+<textarea id="alias2" class="code" mode="groovy" style="display: none;">
+    @NotNull
+    @NotBlank
+    @Regex
+    @AnnotationCollector
+    @interface Email {}
+</textarea>
+    </div>
+    <div class="slide">
+    <p>Use it!</p>
+<textarea id="alias3" class="code" mode="groovy" style="display: none;">
+boolean create(@Email('...') String email) { ... }
+</textarea>
+    </div>
+</section>
+<section class="slide">
+    <h2>Alias annotations</h2>
+    <ul>
+        <li>Replaces alias with target annotations at compile time</li>
+        <li>Alias is not visible anymore at runtime</li>
+        <li>Ability to create custom "expanders" for complex aliases</li>
+    </ul>
+    <p>As an example, Groovy 2.1 includes @CompileDynamic as an alias for @CompileStatic(TypeCheckingMode.SKIP)</p>
+</section>
+
+<!-- Compilation customization -->
+<section class="slide">
+    <div class="vcenter">
+        <h2>Groovy 2.1</h2>
+        <h3>Compilation configuration</h3>
+    </div>
+</section>
+<section class="slide">
+    <h2>Taking control of your Groovy</h2>
+    <ul><li>Groovy 1.8 introduced compilation customizers
+        <ul>
+            <li>add imports,  AST xforms, secure the AST...</li>
+        </ul>
+    </li>
+    <li>With static type checking and static compilation, we received feedback from people wanting them applied « by default »</li>
+    <li>Make available to groovyc what was available to GroovyShell or GroovyScriptEngine
+    <ul>
+        <li>with a configuration script</li>
+        <li>groovyc -configurator compConf.groovy Foo.groovy</li>
+    </ul>
+    </li>
+    </ul>
+</section>
+<section class="slide">
+    <h2>Compilation configuration script</h2>
+    <p>The configuration script gives you access to CompilerConfiguration</p>
+<textarea id="config" class="code" mode="groovy" style="display: none;">
+withConfig(configuration) {
+    source(basenameValidator: { it.endsWith('MyDomain') }) {
+        ast(ToString)
+    }
+    source(basenameValidator: { it.endsWith('mathFormula') }) {
+        imports {
+            staticStar 'java.lang.Math'
+        }
+    }
+}
+</textarea>
+    <div class="slide">
+        <p>The CompilationCustomizerBuilder is available outside of this context</p>
+    </div>
+</section>
+
+<section class="slide">
+    <div class="vcenter">
+        <h2>Groovy 2.1</h2>
+        <h3>Type checking extensions</h3>
+    </div>
+</section>
+<!-- Type checking extensions -->
+<section class="slide">
+    <h2>Type checking extensions</h2>
+    <ul>
+        <li>Plug into the type checking system</li>
+        <li>Very interesting for DSLs</li>
+        <li>Make the compiler smarter!</li>
+    </ul>
+    <div class="slide">
+        <p>Extensive description tomorrow, "Type checking your DSLs" at 10:15</p>
+    </div>
+</section>
+<section class="slide">
+    <h2>Type checking extensions: example</h2>
+    <p>Take this code</p>
+<textarea id="dsl1" class="code" mode="groovy" style="display: none;">
+    point a
+    point b
+    line (b,c)
+    line (a,b)
+    point c
+</textarea>
+    <ul><li>Can you make it pass type checking?
+        <ul>
+            <li>Ensure that "b" is a point in line(b,c)</li>
+            <li>Handle forward references</li>
+        </ul>
+        </li>
+        <li>Hint: answer is yes!</li>
+    </ul>
+</section>
+<section class="slide">
+    <h2>Type checking extensions</h2>
+    <ul>
+        <li>Makes use of an event-based API
+        <ul>
+            <li>ex: onMethodSelection, unresolvedVariable, ...</li>
+        </ul>
+        </li>
+        <li>Allows you to make the compiler even smarter than Java is!</li>
+    </ul>
+    <textarea id="typecheckedext" class="code" mode="groovy" style="display: none;">
+@TypeChecked('MyExtension.groovy')
+def myMethod() {
+ //
+}
+</textarea>
+</section>
+
+<section class="slide">
+    <div class="vcenter">
+        <h2>Questions</h2>
+        <div class="slide">
+            <h3>Thank you!</h3>
+        </div>
+    </div>
+</section>
+
+<!-- End slides. -->
+
+
+<!-- Begin extension snippets. Add or remove as needed. -->
+
+<!-- deck.navigation snippet -->
+<a href="#" class="deck-prev-link" title="Previous">&#8592;</a>
+<a href="#" class="deck-next-link" title="Next">&#8594;</a>
+
+<!-- deck.status snippet -->
+<p class="deck-status">
+	<span class="deck-status-current"></span>
+	/
+	<span class="deck-status-total"></span>
+</p>
+
+<!-- deck.goto snippet -->
+<form action="." method="get" class="goto-form">
+	<label for="goto-slide">Go to slide:</label>
+	<input type="text" name="slidenum" id="goto-slide" list="goto-datalist">
+	<datalist id="goto-datalist"></datalist>
+	<input type="submit" value="Go">
+</form>
+
+<!-- deck.hash snippet -->
+<a href="." title="Permalink to this slide" class="deck-permalink">#</a>
+
+<!-- End extension snippets. -->
+
+
+<!-- Required JS files. -->
+<script src="jquery-1.7.2.min.js"></script>
+<script src="core/deck.core.js"></script>
+<script src="extensions/codemirror/codemirror.js"></script>
+
+<!-- Extension JS files. Add or remove as needed. -->
+<script src="core/deck.core.js"></script>
+<script src="extensions/goto/deck.goto.js"></script>
+<script src="extensions/hash/deck.hash.js"></script>
+<script src="extensions/status/deck.status.js"></script>
+<script src="extensions/navigation/deck.navigation.js"></script>
+<script src="extensions/scale/deck.scale.js"></script>
+<script src="extensions/codemirror/deck.codemirror.js"></script>
+<script src="extensions/codemirror/mode/javascript/javascript.js"></script>
+<script src="extensions/codemirror/mode/groovy/groovy.js"></script>
+
+<!-- Initialize the deck. You can put this in an external file if desired. -->
+<script>
+	$(function() {
+        $.deck('.slide');
+        var opts = $.deck('getOptions');
+        opts.codemirror.theme = 'neat';
+	});
+</script>
+</body>
+</html>

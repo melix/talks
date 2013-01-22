@@ -1,0 +1,6 @@
+DelegatesTo != foo.collect { ... }
+groovy truth
+impact of using @CS vs other modules
+when do I know I must use @CS?
+If we know a collection is immutable, can't we find errors at compile time instead of runtime?
+
