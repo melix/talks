@@ -70,6 +70,21 @@
 </section>
 <section class="slide">
     <div class="vcenter">
+        <h2>Before we start...</h2>
+    </div>
+</section>
+
+<section class="slide">
+    <h2>A little surprise...</h2>
+    <h3>About Groovy</h3>
+    <ul>
+	<li><div style="color:red;font-size:xx-large">1.7M downloads in 2012!</div></li>
+        <li class="slide">Someone wants to talk to you...</li>
+    </ul>
+</section>
+
+<section class="slide">
+    <div class="vcenter">
         <h2>Groovy 2</h2>
         <h3>Modularity</h3>
     </div>
@@ -289,6 +304,30 @@ void method() {}
     println naamme
 }
     </textarea>
+</section>
+<section class="slide">
+    <h2>Type checking options</h2>
+    <h3>if set on a class, type checks:</h3>
+    <ul>
+        <li>the whole class</li>
+        <li>inner classes</li>
+        <li>closures defined in the class</li>
+    </ul>
+    <h3>if set on a method, type checks:</h3>
+    <ul>
+        <li>the method only</li>
+        <li>closures defined in the method body</li>
+    </ul>
+    <div class="slide">
+        You can prevent some code from beeing type checked:
+        <textarea id="skip" name="skip" class="code" mode="groovy" style="display: none;">
+import groovy.transform.TypeChecked
+import static groovy.transform.TypeCheckingMode.*
+
+@TypeChecked(SKIP)
+int foo() { 'STRING SHOULD NOT PASS TYPE CHECKING' }
+</textarea>
+    </div>
 </section>
 <section class="slide">
     <h2>Static type checking: assignments</h2>

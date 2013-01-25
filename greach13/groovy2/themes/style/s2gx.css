@@ -83,7 +83,7 @@
 .deck-container.deck-menu .deck-current, .no-touch .deck-container.deck-menu .slide:hover {
   background: #ddf;
 }
-
+/*
 .deck-container .deck-status {
     width: 100%;
     height: 32px;
@@ -91,4 +91,4 @@
     color: white;
     font-weight: bolder;
 }
-
+*/
